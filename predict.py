@@ -31,15 +31,17 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25)
 
 #Train a model
 # classifier = KNeighborsClassifier(1)
-# classifier = tree.DecisionTreeClassifier(class_weight="balanced")
+classifier = tree.DecisionTreeClassifier()#min_samples_leaf = 5)
 # classifier = svm.LinearSVC()
-classifier = RandomForestClassifier(class_weight="balanced")
+# classifier = RandomForestClassifier(class_weight="balanced")
 # classifier = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
 classifier.fit(x_train,y_train)
 # classifier.fit(x,y)
 
+
 #Test and display stats
 #x_test = scaler.transform(x_test)
+# tree.export_graphviz(classifier, "tree.dot")
 plot_confusion_matrix(classifier, x_test, y_test)
 plt.show()
 print("Area under ROC curve: " + str(roc_auc_score(y_test, classifier.predict(x_test))))
