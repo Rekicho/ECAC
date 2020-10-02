@@ -17,8 +17,8 @@ CREATE TABLE District (
     unemployment_rate_95    FLOAT,
     unemployment_rate_96    FLOAT,
     number_enterpreneurs    INTEGER,
-    comminted_crimes_95     INTEGER,
-    comminted_crimes_96     INTEGER
+    committed_crimes_95     INTEGER,
+    committed_crimes_96     INTEGER
 );
 
 DROP TABLE IF EXISTS Account;
@@ -34,7 +34,7 @@ DROP TABLE IF EXISTS Client;
 
 CREATE TABLE Client (
     client_id           INTEGER PRIMARY KEY,
-    birth_numver        INTEGER,
+    birth_number        INTEGER,
     district_id         INTEGER REFERENCES District
 );
 
@@ -69,6 +69,7 @@ CREATE TABLE Loan (
     account_id          INTEGER REFERENCES Account,
     date                TEXT,
     amount              FLOAT,
+    duration            INTEGER,
     payments            FLOAT,
     status              INTEGER
 );
