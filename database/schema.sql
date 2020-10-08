@@ -62,9 +62,21 @@ CREATE TABLE Trans (
     account             INTEGER    
 );
 
-DROP TABLE IF EXISTS Loan;
+DROP TABLE IF EXISTS Loan_Train;
 
-CREATE TABLE Loan (
+CREATE TABLE Loan_Train (
+    loan_id             INTEGER PRIMARY KEY,
+    account_id          INTEGER REFERENCES Account,
+    date                TEXT,
+    amount              FLOAT,
+    duration            INTEGER,
+    payments            FLOAT,
+    status              INTEGER
+);
+
+DROP TABLE IF EXISTS Loan_Test;
+
+CREATE TABLE Loan_Test (
     loan_id             INTEGER PRIMARY KEY,
     account_id          INTEGER REFERENCES Account,
     date                TEXT,
