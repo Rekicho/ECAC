@@ -6,7 +6,7 @@ from matplotlib.colors import ListedColormap
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import plot_confusion_matrix, roc_auc_score, f1_score
+from sklearn.metrics import plot_confusion_matrix, accuracy_score, precision_score, recall_score, roc_auc_score, f1_score
 from sklearn import tree, svm, preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
@@ -31,7 +31,7 @@ def classify(train_data, data_cols, status_cols, res_data):
     y = train[:, [status_cols]].transpose()[0]
 
     #Split in train and test
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.01)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25)
 
     #Preprocess
     # scaler = preprocessing.StandardScaler().fit(x_train)
@@ -50,10 +50,14 @@ def classify(train_data, data_cols, status_cols, res_data):
     #Test and display stats
     #x_test = scaler.transform(x_test)
     # tree.export_graphviz(classifier, "tree.dot")
-    # plot_confusion_matrix(classifier, x_test, y_test)
-    # plt.show()
-    # print("Area under ROC curve: " + str(roc_auc_score(y_test, classifier.predict(x_test))))
-    # print("f1: " + str(f1_score(y_test, classifier.predict(x_test))))
+    plot_confusion_matrix(classifier, x_test, y_test)
+    plt.show()
+    
+    print("Area under ROC curve: " + str(roc_auc_score(y_test, classifier.predict(x_test))))
+    print("Accuracy: " + str(accuracy_score(y_test, classifier.predict(x_test))))
+    print("Precision: " + str(precision_score(y_test, classifier.predict(x_test))))
+    print("Recall: " + str(recall_score(y_test, classifier.predict(x_test))))
+    print("f1: " + str(f1_score(y_test, classifier.predict(x_test))))
 
     #Predict submission
     res_data["status"] = 0
