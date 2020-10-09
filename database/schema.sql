@@ -26,7 +26,7 @@ DROP TABLE IF EXISTS Account;
 CREATE TABLE Account (
     account_id          INTEGER PRIMARY KEY,
     district_id         INTEGER REFERENCES District,
-    frequency           TEXT,
+    frequency           INTEGER,
     date                TEXT
 );
 

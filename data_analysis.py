@@ -19,9 +19,9 @@ def analyse_table(table):
     # print("\nCorrelation:\n" + str(table.corr()))
     # plt.matshow(table.corr())
 
-    # table.plot.scatter(x='date', y='amount')
-    # table.plot.scatter(x='duration', y='amount')
-    # table.plot.scatter(x='duration', y='payments')
+    table.plot.scatter(x='date', y='amount')
+    table.plot.scatter(x='duration', y='amount')
+    table.plot.scatter(x='duration', y='payments')
     plt.show()
     
 

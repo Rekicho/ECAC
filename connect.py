@@ -32,11 +32,19 @@ def create_schema(path):
     except Error as e:
     
         print(f"The error '{e}' occurred")
+
+def replace_text(df, file):
+    if file == "account.csv":
+        mapping = {'monthly issuance': 0, 'issuance after transaction': 1, 'weekly issuance': 2}
+        df = df.replace({'frequency': mapping})
+    
+    return df
     
         
 def populate_table(connection, name, file):
     cur = connection.cursor
     df = pandas.read_csv("data/" + file, sep=';', dtype='unicode')
+    df = replace_text(df, file)
     df.to_sql(name, connection, if_exists='append', index=False)
     connection.commit()
 
@@ -59,7 +67,8 @@ def create_dataset():
                             municipalities_499, municipalities_1999, municipalities_9999,
                             municipalities_max, cities, ratio_urban_inhabitants, average_salary,
                             unemployment_rate_95, unemployment_rate_96, number_enterpreneurs, 
-                            committed_crimes_95, committed_crimes_96, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members 
+                            committed_crimes_95, committed_crimes_96, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members,
+                            frequency, (Loan_Train.date - Account.date) as account_age
                             FROM Loan_Train 
                             INNER JOIN Account USING(account_id) 
                             INNER JOIN District ON Account.district_id = District.code""", connection)
@@ -68,7 +77,8 @@ def create_dataset():
                             municipalities_499, municipalities_1999, municipalities_9999,
                             municipalities_max, cities, ratio_urban_inhabitants, average_salary,
                             unemployment_rate_95, unemployment_rate_96, number_enterpreneurs, 
-                            committed_crimes_95, committed_crimes_96, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members 
+                            committed_crimes_95, committed_crimes_96, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members,
+                            frequency, (Loan_test.date - Account.date) as account_age
                             FROM Loan_Test 
                             INNER JOIN Account USING(account_id) 
                             INNER JOIN District ON Account.district_id = District.code""", connection)

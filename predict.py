@@ -12,6 +12,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.impute import SimpleImputer
 
+from imblearn.over_sampling import SMOTE
+
 # train_data - Tablee to train model
 # data_cols - Collumns to use for training
 # status_cols - Collumn to predict
@@ -29,6 +31,9 @@ def classify(train_data, data_cols, status_cols, res_data):
     #Filter data
     x = train[:, data_cols]
     y = train[:, [status_cols]].transpose()[0]
+
+    oversample = SMOTE()
+    x, y = oversample.fit_resample(x, y)
 
     #Split in train and test
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25)
