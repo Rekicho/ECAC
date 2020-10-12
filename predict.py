@@ -32,8 +32,8 @@ def classify(train_data, data_cols, status_cols, res_data):
     x = train[:, data_cols]
     y = train[:, [status_cols]].transpose()[0]
 
-    oversample = SMOTE()
-    x, y = oversample.fit_resample(x, y)
+    # oversample = SMOTE()
+    # x, y = oversample.fit_resample(x, y)
 
     #Split in train and test
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25)

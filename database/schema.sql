@@ -5,7 +5,7 @@ DROP TABLE IF EXISTS District;
 CREATE TABLE District (
     code                    INTEGER PRIMARY KEY,
     name                    TEXT,
-    region                  TEXT,
+    region                  INTEGER,
     inhabitants             INTEGER,
     municipalities_499      INTEGER,
     municipalities_1999     INTEGER,
@@ -34,7 +34,8 @@ DROP TABLE IF EXISTS Client;
 
 CREATE TABLE Client (
     client_id           INTEGER PRIMARY KEY,
-    birth_number        INTEGER,
+    birth_number        TEXT,
+    gender              INTEGER,
     district_id         INTEGER REFERENCES District
 );
 
@@ -44,17 +45,32 @@ CREATE TABLE Disposition (
     disp_id             INTEGER PRIMARY KEY,
     client_id           INTEGER REFERENCES Client,
     account_id          INTEGER REFERENCES Account,
-    type                TEXT
+    type                INTEGER
 );
 
-DROP TABLE IF EXISTS Trans;
+DROP TABLE IF EXISTS Trans_Train;
 
-CREATE TABLE Trans (
+CREATE TABLE Trans_Train (
     trans_id            INTEGER PRIMARY KEY,
     account_id          INTEGER REFERENCES Account,
     date                TEXT,
-    type                TEXT,
-    operation           TEXT,
+    type                INTEGER,
+    operation           TEXT, -- Maybe change this to classes
+    amount              FLOAT,
+    balance             FLOAT,
+    k_symbol            TEXT,
+    bank                TEXT,
+    account             INTEGER    
+);
+
+DROP TABLE IF EXISTS Trans_Test;
+
+CREATE TABLE Trans_Test (
+    trans_id            INTEGER PRIMARY KEY,
+    account_id          INTEGER REFERENCES Account,
+    date                TEXT,
+    type                INTEGER,
+    operation           TEXT, -- Maybe change this to classes
     amount              FLOAT,
     balance             FLOAT,
     k_symbol            TEXT,
@@ -86,12 +102,20 @@ CREATE TABLE Loan_Test (
     status              INTEGER
 );
 
-DROP TABLE IF EXISTS Card;
+DROP TABLE IF EXISTS Card_Train;
 
-CREATE TABLE Card (
+CREATE TABLE Card_Train (
     card_id             INTEGER PRIMARY KEY,
     disp_id             INTEGER REFERENCES Disposition,
     type                INTEGER,
     issued              TEXT
 );
 
+DROP TABLE IF EXISTS Card_Test;
+
+CREATE TABLE Card_Test (
+    card_id             INTEGER PRIMARY KEY,
+    disp_id             INTEGER REFERENCES Disposition,
+    type                INTEGER,
+    issued              TEXT
+);
