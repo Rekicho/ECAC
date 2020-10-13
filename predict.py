@@ -16,27 +16,33 @@ from imblearn.over_sampling import SMOTE
 
 # train_data - Tablee to train model
 # data_cols - Collumns to use for training
-# status_cols - Collumn to predict
+# status_col - Collumn to predict
 # res_data - Table to predict
-def classify(train_data, data_cols, status_cols, res_data):
+def classify(train_data, data_cols, status_col, res_data):
     #Replace empty values with NaN
     train_data = train_data.replace('?', np.nan)
     res_data = res_data.replace('?', np.nan)
 
     train = train_data.to_numpy()
-    imp = SimpleImputer(missing_values=np.nan, strategy='mean')
-    imp = imp.fit(train)
-    train = imp.transform(train)
+    # imp = SimpleImputer(missing_values=np.nan, strategy='mean')
+    # imp = imp.fit(train)
+    # train = imp.transform(train)
+
+    
 
     #Filter data
     x = train[:, data_cols]
-    y = train[:, [status_cols]].transpose()[0]
+    y = train[:, [status_col]].transpose()[0]
+    y=y.astype('int')
 
-    # oversample = SMOTE()
-    # x, y = oversample.fit_resample(x, y)
+    
 
-    #Split in train and test
+    oversample = SMOTE()
+    x, y = oversample.fit_resample(x, y)
+
+    #Split in train and test - Should also try split manually by date
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25)
+
 
     #Preprocess
     # scaler = preprocessing.StandardScaler().fit(x_train)
@@ -68,9 +74,9 @@ def classify(train_data, data_cols, status_cols, res_data):
     res_data["status"] = 0
     res = res_data.to_numpy()
 
-    imp = SimpleImputer(missing_values=np.nan, strategy='mean')
-    imp = imp.fit(res)
-    res = imp.transform(res)
+    # imp = SimpleImputer(missing_values=np.nan, strategy='mean')
+    # imp = imp.fit(res)
+    # res = imp.transform(res)
 
     x_res = res[:, data_cols]
     y_res = classifier.predict(x_res)

@@ -55,7 +55,6 @@ def replace_text(df, file):
         df = df.replace({'frequency': mapping})
         df["date"] = df["date"].apply(lambda x: pandas.to_datetime('19' + x, format='%Y%m%d'))
 
-
     if file == "client.csv":
         df["gender"] = df["birth_number"].apply(getGender)
         df["birth_number"] = df["birth_number"].apply(getBirthday)
@@ -115,30 +114,48 @@ def populate(connection):
     populate_table(connection, "Card_Test", "card_test.csv")
 
 connection = create_connection("database/bank.db")
-create_schema("database/schema.sql")
-populate(connection)
+# create_schema("database/schema.sql")
+# populate(connection)
+# connection.cursor().execute("""
+#     UPDATE Trans_Train 
+#     SET amount = - amount
+#     WHERE type == 1;
+# """)
+# connection.cursor().execute("""
+#     UPDATE Trans_Test
+#     SET amount = - amount
+#     WHERE type == 1;
+# """)
 
 def create_dataset():
-    train = pandas.read_sql_query("""SELECT loan_id, duration, payments, status, region, inhabitants,
-                            municipalities_499, municipalities_1999, municipalities_9999,
-                            municipalities_max, cities, ratio_urban_inhabitants, average_salary,
-                            unemployment_rate_95, unemployment_rate_96, number_enterpreneurs, 
-                            committed_crimes_95, committed_crimes_96, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members,
-                            frequency, (Loan_Train.date - Account.date) as account_age, ( Loan_Train.date - Client.birth_number) as owner_age
-                            FROM Loan_Train 
+    train = pandas.read_sql_query("""SELECT loan_id, status, strftime('%m', Loan_Train.date) AS date_month, strftime('%Y', Loan_Train.date) AS date_year, amount, duration, payments,
+                            frequency, julianday(Loan_Train.date) - julianday(Account.date) AS account_age, nr_movements, min_amount, avg_amount, max_amount,
+                            min_balance, avg_balance, max_balance
+                            FROM Loan_Train
                             INNER JOIN Account USING(account_id)
-                            INNER JOIN Client ON (SELECT Disposition.client_id FROM Disposition WHERE Disposition.account_id = Account.account_id AND type = 0 ) = Client.client_id
-                            INNER JOIN District ON Client.district_id = District.code""", connection)
+                            LEFT OUTER JOIN
+                            (
+                                SELECT Trans_Train.account_id, COUNT(*) AS nr_movements,
+                                        MIN(amount) AS min_amount, AVG(amount) AS avg_amount, MAX(amount) AS max_amount,
+                                        MIN(balance) AS min_balance, AVG(balance) AS avg_balance, MAX(balance) AS max_balance
+                                FROM Trans_Train
+                                GROUP BY Trans_Train.account_id
+                            ) AS TT ON Loan_Train.account_id = TT.account_id""", connection)
 
-    test = pandas.read_sql_query("""SELECT loan_id, duration, payments, status, region, inhabitants,
-                            municipalities_499, municipalities_1999, municipalities_9999,
-                            municipalities_max, cities, ratio_urban_inhabitants, average_salary,
-                            unemployment_rate_95, unemployment_rate_96, number_enterpreneurs, 
-                            committed_crimes_95, committed_crimes_96, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members,
-                            frequency, (Loan_test.date - Account.date) as account_age, (Loan_Test.date - Client.birth_number) as owner_age
+    test = pandas.read_sql_query("""SELECT loan_id, status, strftime('%m', Loan_Test.date) AS date_month, strftime('%Y', Loan_Test.date) AS date_year, amount, duration, payments,
+                            frequency, julianday(Loan_Test.date) - julianday(Account.date) AS account_age, nr_movements, min_amount, avg_amount, max_amount,
+                            min_balance, avg_balance, max_balance
                             FROM Loan_Test
                             INNER JOIN Account USING(account_id)
-                            INNER JOIN Client ON (SELECT Disposition.client_id FROM Disposition WHERE Disposition.account_id = Account.account_id AND type = 0 ) = Client.client_id
-                            INNER JOIN District ON Client.district_id = District.code""", connection)
+                            LEFT OUTER JOIN
+                            (
+                                SELECT Trans_Test.account_id, COUNT(*) AS nr_movements,
+                                        MIN(amount) AS min_amount, AVG(amount) AS avg_amount, MAX(amount) AS max_amount,
+                                        MIN(balance) AS min_balance, AVG(balance) AS avg_balance, MAX(balance) AS max_balance
+                                FROM Trans_Test
+                                GROUP BY Trans_Test.account_id
+                            ) AS TT ON Loan_Test.account_id = TT.account_id""", connection)
+
+    print(train)
 
     return train, test
