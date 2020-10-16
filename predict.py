@@ -11,6 +11,7 @@ from sklearn import tree, svm, preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder
 
 from imblearn.over_sampling import SMOTE
 
@@ -24,18 +25,15 @@ def classify(train_data, data_cols, status_col, res_data):
     res_data = res_data.replace('?', np.nan)
 
     train = train_data.to_numpy()
-    # imp = SimpleImputer(missing_values=np.nan, strategy='mean')
-    # imp = imp.fit(train)
-    # train = imp.transform(train)
-
-    
 
     #Filter data
     x = train[:, data_cols]
     y = train[:, [status_col]].transpose()[0]
     y=y.astype('int')
 
-    
+    imp = SimpleImputer(missing_values=np.nan)
+    imp = imp.fit(x)
+    x = imp.transform(x)
 
     oversample = SMOTE()
     x, y = oversample.fit_resample(x, y)
@@ -51,7 +49,7 @@ def classify(train_data, data_cols, status_col, res_data):
     #Train a model
     # classifier = KNeighborsClassifier()
     # classifier = tree.DecisionTreeClassifier()
-    # classifier = svm.LinearSVC(max_iter=10000000)
+    # classifier = svm.LinearSVC()
     classifier = RandomForestClassifier()
     # classifier = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
     classifier.fit(x_train,y_train)
@@ -74,9 +72,9 @@ def classify(train_data, data_cols, status_col, res_data):
     res_data["status"] = 0
     res = res_data.to_numpy()
 
-    # imp = SimpleImputer(missing_values=np.nan, strategy='mean')
-    # imp = imp.fit(res)
-    # res = imp.transform(res)
+    imp = SimpleImputer(missing_values=np.nan)
+    imp = imp.fit(res) 
+    res = imp.transform(res)
 
     x_res = res[:, data_cols]
     y_res = classifier.predict(x_res)
