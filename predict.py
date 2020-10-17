@@ -11,6 +11,7 @@ from sklearn import tree, svm, preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.impute import SimpleImputer
+from sklearn.feature_selection import RFECV
 from sklearn.preprocessing import OneHotEncoder
 
 from imblearn.over_sampling import SMOTE
@@ -51,8 +52,13 @@ def classify(train_data, data_cols, status_col, res_data):
     # classifier = tree.DecisionTreeClassifier()
     # classifier = svm.LinearSVC()
     classifier = RandomForestClassifier()
+
+    #Feature Selection
+    classifier = RFECV(classifier, min_features_to_select=1)
+
     # classifier = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
     classifier.fit(x_train,y_train)
+    print("Selected Features: %s" % (classifier.ranking_))
     # classifier.fit(x,y)
 
 
