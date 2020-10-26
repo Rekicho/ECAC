@@ -51,7 +51,7 @@ def replace_text(df, file):
         df = df.replace({'region': mapping})
 
     if file == "account.csv":
-        mapping = {'monthly issuance': 0, 'issuance after transaction': 1, 'weekly issuance': 2}
+        mapping = {'issuance after transaction': 0, 'weekly issuance': 1, 'monthly issuance': 2}
         df = df.replace({'frequency': mapping})
         df["date"] = df["date"].apply(lambda x: pandas.to_datetime('19' + x, format='%Y%m%d'))
 
@@ -129,15 +129,18 @@ connection = create_connection("database/bank.db")
 
 def create_dataset():
     train = pandas.read_sql_query("""SELECT loan_id, status, strftime('%m', Loan_Train.date) AS date_month, strftime('%Y', Loan_Train.date) AS date_year, amount, duration, payments,
-                            frequency, julianday(Loan_Train.date) - julianday(Account.date) AS account_age, nr_movements, min_amount, avg_amount, max_amount,
-                            min_balance, avg_balance, max_balance, sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) AS amount_month,
+                            frequency, julianday(Loan_Train.date) - julianday(Account.date) AS account_age, nr_movements, min_amount, avg_amount, max_amount, (max_amount - min_amount) AS range_amount,
+                            min_balance, avg_balance, max_balance, (max_balance - min_balance) AS range_balance, sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) AS amount_month,
                             CASE WHEN sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) > payments THEN 1 ELSE 0 END AS can_pay,
                             credits, withdrawals, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members,
                             ROUND((julianday(Loan_Train.date) - julianday(Client.birth_number)) / 365.25) AS owner_age,
                             region, inhabitants, municipalities_499, municipalities_1999, municipalities_9999,
                             municipalities_max, cities, ratio_urban_inhabitants, average_salary,
                             unemployment_rate_95, unemployment_rate_96, number_enterpreneurs,
-                            (SELECT COUNT(*) FROM Disposition INNER JOIN Card_Train USING(disp_id) WHERE Disposition.account_id = Account.account_id) AS number_credit_cards
+                            (SELECT COUNT(*) FROM Disposition INNER JOIN Card_Train USING(disp_id) WHERE Disposition.account_id = Account.account_id) AS number_credit_cards,
+                            (SELECT balance FROM Trans_Train WHERE Loan_Train.account_id = Trans_Train.account_id AND julianday(Loan_Train.date) >= julianday(Trans_Train.date) ORDER BY date DESC LIMIT 1) AS balance_last,
+                            (SELECT amount FROM Trans_Train WHERE Loan_Train.account_id = Trans_Train.account_id AND julianday(Loan_Train.date) >= julianday(Trans_Train.date) ORDER BY date DESC LIMIT 1) AS amount_last,
+                            op_0, op_1, op_2, op_3, op_4
                             FROM Loan_Train
                             INNER JOIN Account USING(account_id)
                             INNER JOIN Client ON (SELECT Disposition.client_id FROM Disposition WHERE Disposition.account_id = Account.account_id AND type = 0) = Client.client_id
@@ -149,21 +152,29 @@ def create_dataset():
                                         MIN(balance) AS min_balance, AVG(balance) AS avg_balance, MAX(balance) AS max_balance,
                                         MAX(Trans_Train.date) AS max_date, MIN(Trans_Train.date) as min_date, SUM(amount) AS sum_amount,
                                         SUM(CASE WHEN type = 0 THEN 1 ELSE 0 END) as credits,
-                                        SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) as withdrawals
+                                        SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) as withdrawals,
+                                        SUM(CASE WHEN operation = 'collection from another bank' THEN 1 ELSE 0 END) as op_0,
+                                        SUM(CASE WHEN operation = 'credit card withdrawal' THEN 1 ELSE 0 END) as op_1,
+                                        SUM(CASE WHEN operation = 'credit in cash' THEN 1 ELSE 0 END) as op_2,
+                                        SUM(CASE WHEN operation = 'remittance to another bank' THEN 1 ELSE 0 END) as op_3,
+                                        SUM(CASE WHEN operation = 'withdrawal in cash' THEN 1 ELSE 0 END) as op_4
                                 FROM Trans_Train
                                 GROUP BY Trans_Train.account_id
                             ) AS TT ON Loan_Train.account_id = TT.account_id""", connection)
 
     test = pandas.read_sql_query("""SELECT loan_id, status, strftime('%m', Loan_Test.date) AS date_month, strftime('%Y', Loan_Test.date) AS date_year, amount, duration, payments,
-                            frequency, julianday(Loan_Test.date) - julianday(Account.date) AS account_age, nr_movements, min_amount, avg_amount, max_amount,
-                            min_balance, avg_balance, max_balance, sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) AS amount_month,
+                            frequency, julianday(Loan_Test.date) - julianday(Account.date) AS account_age, nr_movements, min_amount, avg_amount, max_amount, (max_amount - min_amount) AS range_amount,
+                            min_balance, avg_balance, max_balance, (max_balance - min_balance) AS range_balance, sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) AS amount_month,
                             CASE WHEN sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) > payments THEN 1 ELSE 0 END AS can_pay,
                             credits, withdrawals, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members,
                             ROUND((julianday(Loan_Test.date) - julianday(Client.birth_number)) / 365.25) AS owner_age,
                             region, inhabitants, municipalities_499, municipalities_1999, municipalities_9999,
                             municipalities_max, cities, ratio_urban_inhabitants, average_salary,
                             unemployment_rate_95, unemployment_rate_96, number_enterpreneurs,
-                            (SELECT COUNT(*) FROM Disposition INNER JOIN Card_Test USING(disp_id) WHERE Disposition.account_id = Account.account_id) AS number_credit_cards
+                            (SELECT COUNT(*) FROM Disposition INNER JOIN Card_Test USING(disp_id) WHERE Disposition.account_id = Account.account_id) AS number_credit_cards,
+                            (SELECT balance FROM Trans_Test WHERE Loan_Test.account_id = Trans_Test.account_id AND julianday(Loan_Test.date) >= julianday(Trans_Test.date) ORDER BY date DESC LIMIT 1) AS balance_last,
+                            (SELECT amount FROM Trans_Test WHERE Loan_Test.account_id = Trans_Test.account_id AND julianday(Loan_Test.date) >= julianday(Trans_Test.date) ORDER BY date DESC LIMIT 1) AS amount_last,
+                            op_0, op_1, op_2, op_3, op_4
                             FROM Loan_Test
                             INNER JOIN Account USING(account_id)
                             INNER JOIN Client ON (SELECT Disposition.client_id FROM Disposition WHERE Disposition.account_id = Account.account_id AND type = 0) = Client.client_id
@@ -175,11 +186,17 @@ def create_dataset():
                                         MIN(balance) AS min_balance, AVG(balance) AS avg_balance, MAX(balance) AS max_balance,
                                         MAX(Trans_Test.date) AS max_date, MIN(Trans_Test.date) as min_date, SUM(amount) AS sum_amount,
                                         SUM(CASE WHEN type = 0 THEN 1 ELSE 0 END) as credits,
-                                        SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) as withdrawals
+                                        SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) as withdrawals,
+                                        SUM(CASE WHEN operation = 'collection from another bank' THEN 1 ELSE 0 END) as op_0,
+                                        SUM(CASE WHEN operation = 'credit card withdrawal' THEN 1 ELSE 0 END) as op_1,
+                                        SUM(CASE WHEN operation = 'credit in cash' THEN 1 ELSE 0 END) as op_2,
+                                        SUM(CASE WHEN operation = 'remittance to another bank' THEN 1 ELSE 0 END) as op_3,
+                                        SUM(CASE WHEN operation = 'withdrawal in cash' THEN 1 ELSE 0 END) as op_4
                                 FROM Trans_Test
                                 GROUP BY Trans_Test.account_id
                             ) AS TT ON Loan_Test.account_id = TT.account_id""", connection)
 
+    print(train)
     print(train.describe())
 
     return train, test
