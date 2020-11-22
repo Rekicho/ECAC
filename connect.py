@@ -67,13 +67,11 @@ def replace_text(df, file):
         df["date"] = df["date"].apply(lambda x: pandas.to_datetime('19' + x, format='%Y%m%d'))
         mapping = {'credit': 0, 'withdrawal': 1, 'withdrawal in cash': 1}
         df = df.replace({'type': mapping})
-        # Maybe also change operation to classes
     
     if file == "trans_test.csv":
         df["date"] = df["date"].apply(lambda x: pandas.to_datetime('19' + x, format='%Y%m%d'))
         mapping = {'credit': 0, 'withdrawal': 1, 'withdrawal in cash': 1}
         df = df.replace({'type': mapping})
-        # Maybe also change operation to classes
 
     if file == "loan_train.csv":
         df["date"] = df["date"].apply(lambda x: pandas.to_datetime('19' + x, format='%Y%m%d'))
@@ -114,18 +112,18 @@ def populate(connection):
     populate_table(connection, "Card_Test", "card_test.csv")
 
 connection = create_connection("database/bank.db")
-# create_schema("database/schema.sql")
-# populate(connection)
-# connection.cursor().execute("""
-#     UPDATE Trans_Train 
-#     SET amount = - amount
-#     WHERE type == 1;
-# """)
-# connection.cursor().execute("""
-#     UPDATE Trans_Test
-#     SET amount = - amount
-#     WHERE type == 1;
-# """)
+create_schema("database/schema.sql")
+populate(connection)
+connection.cursor().execute("""
+    UPDATE Trans_Train 
+    SET amount = - amount
+    WHERE type == 1;
+""")
+connection.cursor().execute("""
+    UPDATE Trans_Test
+    SET amount = - amount
+    WHERE type == 1;
+""")
 
 def create_dataset():
     train = pandas.read_sql_query("""SELECT loan_id, status, strftime('%m', Loan_Train.date) AS date_month, strftime('%Y', Loan_Train.date) AS date_year, amount, duration, payments,
@@ -133,7 +131,7 @@ def create_dataset():
                             min_balance, avg_balance, max_balance, (max_balance - min_balance) AS range_balance, sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) AS amount_month,
                             CASE WHEN sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) > payments THEN 1 ELSE 0 END AS can_pay,
                             credits, withdrawals, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members,
-                            ROUND((julianday(Loan_Train.date) - julianday(Client.birth_number)) / 365.25) AS owner_age,
+                            ROUND((julianday(Loan_Train.date) - julianday(Client.birth_number)) / 365.25) AS owner_age, gender,
                             region, inhabitants, municipalities_499, municipalities_1999, municipalities_9999,
                             municipalities_max, cities, ratio_urban_inhabitants, average_salary,
                             unemployment_rate_95, unemployment_rate_96, number_enterpreneurs,
@@ -167,7 +165,7 @@ def create_dataset():
                             min_balance, avg_balance, max_balance, (max_balance - min_balance) AS range_balance, sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) AS amount_month,
                             CASE WHEN sum_amount / ((julianday(max_date) - julianday(min_date)) / 30.0) > payments THEN 1 ELSE 0 END AS can_pay,
                             credits, withdrawals, (SELECT count(*) FROM Disposition where Account.account_id = Disposition.account_id) AS members,
-                            ROUND((julianday(Loan_Test.date) - julianday(Client.birth_number)) / 365.25) AS owner_age,
+                            ROUND((julianday(Loan_Test.date) - julianday(Client.birth_number)) / 365.25) AS owner_age, gender,
                             region, inhabitants, municipalities_499, municipalities_1999, municipalities_9999,
                             municipalities_max, cities, ratio_urban_inhabitants, average_salary,
                             unemployment_rate_95, unemployment_rate_96, number_enterpreneurs,
@@ -196,7 +194,8 @@ def create_dataset():
                                 GROUP BY Trans_Test.account_id
                             ) AS TT ON Loan_Test.account_id = TT.account_id""", connection)
 
-    print(train)
     print(train.describe())
-
+    train.to_csv('train.csv')
+    test.to_csv('test.csv')
+    
     return train, test

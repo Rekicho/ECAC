@@ -13,10 +13,10 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.feature_selection import RFECV
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
 
 from imblearn.over_sampling import SMOTE
 import xgboost as xgb
@@ -30,6 +30,14 @@ def classify(train_data, data_cols, status_col, res_data):
     train_data = train_data.replace('?', np.nan)
     res_data = res_data.replace('?', np.nan)
 
+    # One-hot encoding for region
+    enc = OneHotEncoder(handle_unknown='ignore')
+    enc_df = pd.DataFrame(enc.fit_transform(train_data[['region']]).toarray())
+    train_data = train_data.join(enc_df)
+
+    enc_df = pd.DataFrame(enc.fit_transform(res_data[['region']]).toarray())
+    res_data = res_data.join(enc_df)
+
     train = train_data.to_numpy()
 
     #Filter data
@@ -41,11 +49,9 @@ def classify(train_data, data_cols, status_col, res_data):
     imp = imp.fit(x)
     x = imp.transform(x)
 
-    oversample = SMOTE()
-    x, y = oversample.fit_resample(x, y)
-
     # x_train, x_test, y_train, y_test = [], [], [], []
     
+    # Split according to year
     # for i in range(0, len(x)):
     #     if x[i][1] == 1996:
     #         x_test.append(x[i])
@@ -55,72 +61,59 @@ def classify(train_data, data_cols, status_col, res_data):
     #         y_train.append(y[i])     
 
     #Split in train and test - Should also try split manually by date
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=1)
 
-    # oversample = SMOTE()
-    # x_train, y_train = oversample.fit_resample(x_train, y_train)
+    oversample = SMOTE()
+    x_train, y_train = oversample.fit_resample(x_train, y_train)
 
-    #Preprocess
+    # Use for KNN
     # scaler = preprocessing.StandardScaler().fit(x_train)
     # x_train = scaler.transform(x_train)
 
     #Train a model
-    # classifiers = KNeighborsClassifier()
+    # classifier = KNeighborsClassifier()
     # classifier = tree.DecisionTreeClassifier()
     # classifier = svm.LinearSVC()
-    classifier = RandomForestClassifier()
+    classifier = RandomForestClassifier(300)
     # classifier = xgb.XGBClassifier()
-    # classifier = GaussianProcessClassifier()
     # classifier = MLPClassifier(alpha=1, max_iter=1000)
     # classifier = AdaBoostClassifier(cl)
     # classifier = GaussianNB()
-    # classifier = QuadraticDiscriminantAnalysis()
-    # classifier = LinearDiscriminantAnalysis()
     # classifier = VotingClassifier(
-    #     estimators=[('rf', RandomForestClassifier()), ('xgb', xgb.XGBClassifier())],
-    #     voting='hard', weights=[2.5,1]
+    #     estimators=[('dt', tree.DecisionTreeClassifier()), ('svm', svm.LinearSVC()), ('xgb', xgb.XGBClassifier())],
+    #     voting='hard', weights=[1,1,1]
     # )
+    # classifier = LogisticRegression()
 
 
-
-    # classifier = RandomForestClassifier(300, max_depth=1)
-    # best_roc = 0
-
-    # for i in range(0, 10):
-    #     i = i+1
-    #     for j in range(0, 3):
-    #         classifier_i = RandomForestClassifier(300, max_depth=i)
-    #         classifier_i = RFECV(classifier_i, scoring='roc_auc')
-    #         classifier_i.fit(x_train,y_train)
-    #         roc = roc_auc_score(y_test, classifier_i.predict(x_test))
-    #         print("I: " + str(i) + " J: " + str(j) + " roc: " + str(roc))
-    #         if roc > best_roc:
-    #             best_roc = roc
-    #             classifier = classifier_i
-    #         j = j+1
-
-
-
-    Feature Selection
+    # Feature Selection
     classifier = RFECV(classifier, scoring='roc_auc')
     
     classifier.fit(x_train,y_train)
     print("Selected Features: %s" % (classifier.ranking_))
 
 
-    #Test and display stats
-    #x_test = scaler.transform(x_test)
-    # tree.export_graphviz(classifier, "tree.dot")
+    # Test and display stats
+
+    # Use for KNN
+    # x_test = scaler.transform(x_test)
+
+    # Save Decision Tree
+    # fig = plt.figure(figsize=(50,50))
+    # tree.plot_tree(classifier, feature_names=train_data.columns[2:], class_names=['-1', '1'], label='root', filled=True, proportion=True)
+    # fig.savefig("decistion_tree.png")
+
     plot_confusion_matrix(classifier, x_test, y_test)
     plt.show()
-    
+
+    # Print Metrics    
     print("Area under ROC curve: " + str(roc_auc_score(y_test, classifier.predict(x_test))))
     print("Accuracy: " + str(accuracy_score(y_test, classifier.predict(x_test))))
     print("Precision: " + str(precision_score(y_test, classifier.predict(x_test))))
     print("Recall: " + str(recall_score(y_test, classifier.predict(x_test))))
     print("f1: " + str(f1_score(y_test, classifier.predict(x_test))))
 
-    #Predict submission
+    # Predict submission
     res_data["status"] = 0
     res = res_data.to_numpy()
 
@@ -129,9 +122,17 @@ def classify(train_data, data_cols, status_col, res_data):
     res = imp.transform(res)
 
     x_res = res[:, data_cols]
+
+    # For KNN
+    # x_res = scaler.transform(x_res)
+
+    
     y_res = classifier.predict_proba(x_res)
+
+    # Return predicted class only
     # y_res = classifier.predict(x_res)
     
+    # Return confidence in prediction
     prob_res = []
 
     for prob in y_res:
@@ -139,5 +140,5 @@ def classify(train_data, data_cols, status_col, res_data):
 
     #Save to submission file
     res_data['Id'] = res_data['loan_id']
-    res_data['Predicted'] = y_res#prob_res
+    res_data['Predicted'] = prob_res
     res_data.to_csv('data/res.csv', index=False, columns=['Id','Predicted'])

@@ -55,7 +55,7 @@ CREATE TABLE Trans_Train (
     account_id          INTEGER REFERENCES Account,
     date                TEXT,
     type                INTEGER,
-    operation           TEXT, -- Maybe change this to classes
+    operation           TEXT,
     amount              FLOAT,
     balance             FLOAT,
     k_symbol            TEXT,
@@ -70,7 +70,7 @@ CREATE TABLE Trans_Test (
     account_id          INTEGER REFERENCES Account,
     date                TEXT,
     type                INTEGER,
-    operation           TEXT, -- Maybe change this to classes
+    operation           TEXT,
     amount              FLOAT,
     balance             FLOAT,
     k_symbol            TEXT,
